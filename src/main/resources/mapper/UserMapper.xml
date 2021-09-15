@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.liuyan.onefish.dao.UserMapper">
+    <!--映射对应关系-->
+    <resultMap id="baseMap" type="com.liuyan.onefish.entity.UserEntity">
+        <id column="id" property="id" javaType="java.lang.Integer"/>
+        <result column="userName" property="userName" javaType="java.lang.String"/>
+        <result column="address" property="address" javaType="java.lang.String"/>
+        <result column="age" property="age" javaType="java.lang.Integer"/>
+        <result column="college" property="college" javaType="java.lang.String"/>
+        <result column="profession" property="profession" javaType="java.lang.String"/>
+        <result column="skill" property="skill" javaType="java.lang.String"/>
+        <result column="hobby" property="hobby" javaType="java.lang.String"/>
+        <result column="createTime" property="createTime" javaType="java.util.Date"/>
+        <result column="updateTime" property="updateTime" javaType="java.util.Date"/>
+        <result column="isDeleted" property="isDeleted" javaType="java.lang.Integer"/>
+    </resultMap>
+    <!--通过主键id批量删除记录-->
+    <update id="deleteByIds" parameterType="java.util.List">
+        update user
+            set isDeleted = 1,
+            updateTime = NOW()
+        where id in (
+            <foreach collection="list" item="id" index="index" separator=",">
+                #{id,jdbcType=INTEGER}
+            </foreach>
+        )
+    </update>
+    <!--批量更新-->
+    <update id="updateBatch" parameterType="java.util.List">
+        update user
+            set userName =  case id <foreach collection="list" item="user">when #{user.id} then #{user.userName}</foreach> end,
+                address = case id  <foreach collection="list" item="user">when #{user.id} then #{user.address}</foreach> end,
+                skill = case id  <foreach collection="list" item="user">when #{user.id} then #{user.skill}</foreach> end,
+                updateTime = case id  <foreach collection="list" item="user">when #{user.id} then #{user.updateTime}</foreach> end
+        where id in (
+            <foreach collection="list" item="user" separator=",">
+                #{user.id,jdbcType=INTEGER}
+            </foreach>
+            )
+    </update>
+    <!--更新记录-->
+    <update id="update">
+        update user
+        set
+        <trim suffixOverrides=",">
+            <if test="userName != null and userName != ''">userName = #{userName},</if>
+            <if test="address != null and address != ''"> address = #{address},</if>
+            <if test="skill != null and skill != ''">skill = #{skill},</if>
+            <if test="updateTime != null">updateTime = #{updateTime}</if>
+        </trim>
+        where id = #{id} and isDeleted = 0
+    </update>
+    <!--批量插入-->
+    <insert id="insertBatch" parameterType="java.util.List">
+        insert into user(userName,address,age,college,profession,skill,hobby,createTime,updateTime,isDeleted)
+        values
+               <foreach collection="list" item="user" separator=",">
+               (#{user.userName},#{user.address},#{user.age},#{user.college},#{user.profession},
+                #{user.skill},#{user.hobby},#{user.createTime},#{user.updateTime},#{user.isDeleted})
+               </foreach>
+    </insert>
+    <!--查询已删除记录id-->
+    <select id="alreadyDeletedIds" resultType="java.lang.Integer" >
+        select user.id from user
+        where isDeleted = 1
+    </select>
+    <!--统计记录数-->
+    <select id="count" resultType="java.lang.Integer">
+        select count(*) from user
+    </select>
+    <!--查询所有记录-->
+    <select id="All" resultMap="baseMap">
+        select * from user;
+    </select>
+</mapper>

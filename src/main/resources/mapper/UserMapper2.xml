@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTO Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.liuyan.onefish.dao.UserMapper2">
+    <!--映射对应关系-->
+    <resultMap id="baseMap" type="com.liuyan.onefish.entity.UserEntity2">
+        <id column="id" property="id" javaType="java.lang.Integer"/>
+        <result column="userName" property="userName" javaType="java.lang.String"/>
+        <result column="address" property="address" javaType="java.lang.String"/>
+        <result column="age" property="age" javaType="java.lang.Integer"/>
+        <result column="college" property="college" javaType="java.lang.String"/>
+        <result column="profession" property="profession" javaType="java.lang.String"/>
+        <result column="skill" property="skill" javaType="java.lang.String"/>
+        <result column="hobby" property="hobby" javaType="java.lang.String"/>
+        <result column="createTime" property="createTime" javaType="java.util.Date"/>
+        <result column="updateTime" property="updateTime" javaType="java.util.Date"/>
+    </resultMap>
+    <!--通过主键id批量删除记录-->
+    <delete id="deleteByIds2" parameterType="java.util.List">
+        delete from user2
+        where id in (
+        <foreach collection="list" item="id" index="index" separator=",">
+            #{id,jdbcType=INTEGER}
+        </foreach>
+        )
+    </delete>
+    <!--批量插入-->
+    <insert id="insertBatch" parameterType="java.util.List">
+        insert into user2(id,userName,age,address,college,profession,hobby,skill,createTime,updateTime)
+        values
+            <foreach collection="list" item="user" separator=",">
+            (#{user.id},#{user.userName},#{user.age},#{user.address},#{user.college},#{user.profession},#{user.hobby},#{user.skill},#{user.createTime},#{user.updateTime})
+            </foreach>
+    </insert>
+    <!--批量更新-->
+    <update id="updateBatch" parameterType="java.util.List">
+        update user2
+        set userName =  case id <foreach collection="list" item="user">when #{user.id} then #{user.userName}</foreach> end,
+            address = case id  <foreach collection="list" item="user">when #{user.id} then #{user.address}</foreach> end,
+            skill = case id  <foreach collection="list" item="user">when #{user.id} then #{user.skill}</foreach> end,
+            updateTime = case id  <foreach collection="list" item="user">when #{user.id} then #{user.updateTime}</foreach> end
+        where id in (
+        <foreach collection="list" item="user" separator=",">
+            #{user.id,jdbcType=INTEGER}
+        </foreach>
+        )
+    </update>
+    <!--查询所有记录-->
+    <select id="selectAll2" resultMap="baseMap">
+        select * from user2;
+    </select>
+</mapper>

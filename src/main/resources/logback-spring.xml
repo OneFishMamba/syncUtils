@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/base.xml"/>
+  <logger name="org.springframework.web" level="debug"/>
+
+  <!-- 定义日志文件 输入位置 -->
+  <property name="logDir" value="E:/onefish/log" />
+  <!-- 日志最大的历史 30天 -->
+  <property name="maxHistory" value="30"/>
+
+  <!-- 控制台输出日志 -->
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger -%msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
+    </encoder>
+  </appender>
+
+  <!-- ERROR级别日志 -->
+  <appender name="ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>ERROR</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}\%d{yyyyMMdd}\error.log</fileNamePattern>
+      <maxHistory>${maxHistory}</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
+    </encoder>
+    <append>false</append>
+    <prudent>false</prudent>
+  </appender>
+
+  <!-- WARN级别日志 -->
+  <appender name="WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>WARN</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}\%d{yyyyMMdd}\warn.log</fileNamePattern>
+      <maxHistory>${maxHistory}</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
+    </encoder>
+    <append>false</append>
+    <prudent>false</prudent>
+  </appender>
+
+  <!-- INFO级别日志 -->
+  <appender name="INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>INFO</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}\%d{yyyyMMdd}\info.log</fileNamePattern>
+      <maxHistory>${maxHistory}</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
+    </encoder>
+    <append>false</append>
+    <prudent>false</prudent>
+  </appender>
+
+  <!-- DEBUG级别日志 -->
+  <appender name="DEBUG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>DEBUG</level>
+      <onMatch>ACCEPT</onMatch>
+      <onMismatch>DENY</onMismatch>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${logDir}\%d{yyyyMMdd}\debug.log</fileNamePattern>
+      <maxHistory>${maxHistory}</maxHistory>
+    </rollingPolicy>
+    <encoder>
+      <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+      <charset class="java.nio.charset.Charset">UTF-8</charset>
+    </encoder>
+    <append>false</append>
+    <prudent>false</prudent>
+  </appender>
+
+  <!-- root级别  DEBUG -->
+  <root level="INFO">
+    <!-- 控制台输出 -->
+    <appender-ref ref="STDOUT" />
+    <!-- 文件输出 -->
+    <appender-ref ref="ERROR" />
+    <appender-ref ref="INFO" />
+    <appender-ref ref="WARN" />
+    <appender-ref ref="DEBUG" />
+  </root>
+</configuration>

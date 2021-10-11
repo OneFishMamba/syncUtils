@@ -5,7 +5,7 @@
 ### 技术选型
 #### 后端技术
 springboot
-MySQL
+、MySQL
 #### 开发工具
 idea、navicat
 #### 开发环境

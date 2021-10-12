@@ -3,6 +3,7 @@ package com.liuyan.onefish;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -60,5 +61,13 @@ class OneFishApplicationTests {
         System.out.println("list.subList(0,3) = " + list.subList(0,3));
         System.out.println("list.subList(3,5) = " + list.subList(3,5));
         System.out.println("list.subList(5,8) = " + list.subList(5,8));
+        //jdk1.8新增iterator中的foreach方法
+        list.forEach((e)->{
+            if(e.equals("333")){
+                System.out.println("33333");
+        } else {
+                System.out.println("*****");
+            }
+        });
     }
 }

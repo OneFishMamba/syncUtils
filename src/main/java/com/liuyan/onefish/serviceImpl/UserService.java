@@ -1,5 +1,6 @@
 package com.liuyan.onefish.serviceImpl;
 
+import com.google.common.collect.Lists;
 import com.liuyan.onefish.dao.UserMapper2;
 import com.liuyan.onefish.entity.UserEntity;
 import com.liuyan.onefish.entity.UserEntity2;
@@ -35,7 +36,7 @@ public class UserService extends BaseService<UserEntity> implements IUserService
     private final Lock addLock = new ReentrantLock();
     private final Lock updLock = new ReentrantLock();
     private final Lock delLock = new ReentrantLock();
-    private static  AtomicInteger threadCount  = new AtomicInteger(0);
+    private static final AtomicInteger threadCount  = new AtomicInteger(0);
     private  CountDownLatch latch = new CountDownLatch(threadCount.get());
 
     /**
@@ -83,9 +84,18 @@ public class UserService extends BaseService<UserEntity> implements IUserService
 //                    userMapper2.insert(user);
 //                }
                 /**
-                 * 批量插入
+                 * 批量插入,可能存在单次解析数据包packet过大的问题,通过数据分片或调大max_allowed_packet参数解决
                  */
-                userMapper2.insertBatch(addUser);
+                int addListCount = (int)Math.ceil((double)addUser.size()/800);
+//                logger.info("待同步新增的数据分片大小 = " + addListCount);
+                List<List<UserEntity2>> list = Lists.partition(addUser,addListCount);
+                list.forEach((e)->{
+                    if(!e.isEmpty()){
+                        userMapper2.insertBatch(e);
+                    }
+                });
+                //调整数据库引擎默认参数max_allowed_packet的大小,set global max_allowed_packet = 64*1024*1024;
+//                userMapper2.insertBatch(addUser);
             }catch (Exception e){
                 logger.error("执行同步新增数据线程时出现错误!",e);
             }finally {
@@ -115,10 +125,20 @@ public class UserService extends BaseService<UserEntity> implements IUserService
 //                for (UserEntity2 user:updUser) {
 //                    userMapper2.updateByPrimaryKeySelective(user);
 //                }
+
+                int updListCount = (int)Math.ceil((double)updUser.size()/800);//向上取整
+//                logger.info("待同步更新的数据分片大小 = " + updListCount);
+                List<List<UserEntity2>> list = Lists.partition(updUser,updListCount);
+                list.forEach((e)->{
+                    if(!e.isEmpty()){
+                        userMapper2.updateBatch(e);
+                    }
+                });
+                //调整数据库引擎默认参数max_allowed_packet的大小,set global max_allowed_packet = 64*1024*1024;
                 /**
-                 * 批量更新
+                 * 批量更新,可能存在单次解析数据包packet过大的问题,通过数据分片或调大max_allowed_packet参数解决
                  */
-                userMapper2.updateBatch(updUser);
+//                userMapper2.updateBatch(updUser);
             }catch (Exception e){
                 logger.error("执行同步更新数据线程时出现错误!",e);
             }finally {
@@ -162,7 +182,7 @@ public class UserService extends BaseService<UserEntity> implements IUserService
     }
     @Override
     public void sync(List<UserEntity> userlist) {
-    //主库待同步数据处理
+        //主库待同步数据处理
         try {
             Map<Integer,Integer> uMap = new HashMap<>();
             List<UserEntity> uList = new ArrayList<>();
@@ -217,7 +237,7 @@ public class UserService extends BaseService<UserEntity> implements IUserService
                     addUser.add(user2);
                 }
 
-        }
+            }
             /**
              * 单线程批量同步数据
              */
@@ -232,7 +252,7 @@ public class UserService extends BaseService<UserEntity> implements IUserService
 //        for (UserEntity2 user:addUser) {
 //           userMapper2.insert(user);
 //        }
-        //同步更新数据
+            //同步更新数据
 //        for (UserEntity2 user: updUser) {
 //            userMapper2.updateByPrimaryKey(user);
 //        }
@@ -247,43 +267,8 @@ public class UserService extends BaseService<UserEntity> implements IUserService
              */
             logger.info("子线程开始执行...");
             Date startTime = new Date();
-//            pool = new ThreadPoolExecutor(5,5,0, TimeUnit.MILLISECONDS,new SynchronousQueue<>(),Executors.defaultThreadFactory(),new ThreadPoolExecutor.AbortPolicy());
-//
-//            logger.info("待同步新增的数据量大小:" + addUser.size());
-//            logger.info("待同步更新的数据量大小:" + updUser.size());
-//            logger.info("待同步删除的数据量大小:" + delIds.size());
-//                for (int i = 0; i < 5; i++) {
-//                    if(!addUser.isEmpty()){
-//                        if(i == 0){
-//                            threadCount.incrementAndGet();
-//                            pool.execute(new AddDataHandler(addUser.subList(0,3334)));
-//                        }
-//                        if(i == 1){
-//                            threadCount.incrementAndGet();
-//                            pool.execute(new AddDataHandler(addUser.subList(3334,6667)));
-//                        }
-//                        if(i == 2){
-//                            threadCount.incrementAndGet();
-//                            pool.execute(new AddDataHandler(addUser.subList(6667,9950)));
-//                        }
-//                    }
-//                    if(!updUser.isEmpty()){
-//                        if(i == 3){
-//                            threadCount.incrementAndGet();
-//                            pool.execute(new UpdateDataHandler(updUser));
-//                        }
-//                    }
-//                    if(!delIds.isEmpty()){
-//                        if(i == 4){
-//                            threadCount.incrementAndGet();
-//                            pool.execute(new DeleteDataHandler(delIds));
-//                        }
-//                    }
-//                }
-//                //回收线程，释放线程占用的资源
-//                pool.shutdown();
+            pool = new ThreadPoolExecutor(8,15,0, TimeUnit.MILLISECONDS,new ArrayBlockingQueue<>(10),Executors.defaultThreadFactory(),new ThreadPoolExecutor.AbortPolicy());
 
-            //多线程批量处理
             logger.info("待同步新增的数据量大小:" + addUser.size());
             logger.info("待同步更新的数据量大小:" + updUser.size());
             logger.info("待同步删除的数据量大小:" + delIds.size());
@@ -291,38 +276,73 @@ public class UserService extends BaseService<UserEntity> implements IUserService
                 if(!addUser.isEmpty()){
                     if(i == 0){
                         threadCount.incrementAndGet();
-                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(0,3334));
-                        addDataHandler.start();
+                        pool.execute(new AddDataHandler(addUser.subList(0,3334)));
                     }
                     if(i == 1){
                         threadCount.incrementAndGet();
-                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(3334,6667));
-                        addDataHandler.start();
+                        pool.execute(new AddDataHandler(addUser.subList(3334,6667)));
                     }
                     if(i == 2){
                         threadCount.incrementAndGet();
-                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(6667,9950));
-                        addDataHandler.start();
+                        pool.execute(new AddDataHandler(addUser.subList(6667,9950)));
                     }
                 }
-               if(!updUser.isEmpty()){
-                   if(i == 3){
-                       threadCount.incrementAndGet();
-                       UpdateDataHandler updateDataHandler = new UpdateDataHandler(updUser);
-                       updateDataHandler.start();
-                   }
-               }
+                if(!updUser.isEmpty()){
+                    if(i == 3){
+                        threadCount.incrementAndGet();
+                        pool.execute(new UpdateDataHandler(updUser));
+                    }
+                }
                 if(!delIds.isEmpty()){
                     if(i == 4){
                         threadCount.incrementAndGet();
-                        DeleteDataHandler deleteDataHandler = new DeleteDataHandler(delIds);
-                        deleteDataHandler.start();
+                        pool.execute(new DeleteDataHandler(delIds));
                     }
                 }
             }
+            //回收线程，释放线程占用的资源
+            pool.shutdown();
+
+            //多线程批量处理
+//            logger.info("待同步新增的数据量大小:" + addUser.size());
+//            logger.info("待同步更新的数据量大小:" + updUser.size());
+//            logger.info("待同步删除的数据量大小:" + delIds.size());
+//            for (int i = 0; i < 5; i++) {
+//                if(!addUser.isEmpty()){
+//                    if(i == 0){
+//                        threadCount.incrementAndGet();
+//                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(0,3334));
+//                        addDataHandler.start();
+//                    }
+//                    if(i == 1){
+//                        threadCount.incrementAndGet();
+//                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(3334,6667));
+//                        addDataHandler.start();
+//                    }
+//                    if(i == 2){
+//                        threadCount.incrementAndGet();
+//                        AddDataHandler addDataHandler = new AddDataHandler(addUser.subList(6667,addUser.size()));
+//                        addDataHandler.start();
+//                    }
+//                }
+//               if(!updUser.isEmpty()){
+//                   if(i == 3){
+//                       threadCount.incrementAndGet();
+//                       UpdateDataHandler updateDataHandler = new UpdateDataHandler(updUser);
+//                       updateDataHandler.start();
+//                   }
+//               }
+//                if(!delIds.isEmpty()){
+//                    if(i == 4){
+//                        threadCount.incrementAndGet();
+//                        DeleteDataHandler deleteDataHandler = new DeleteDataHandler(delIds);
+//                        deleteDataHandler.start();
+//                    }
+//                }
+//            }
 
             latch.await();
-            logger.info("counter:" + threadCount.get());
+            logger.info("启动的线程数counter:" + threadCount.get());
             logger.info("子线程执行完毕!");
             Date endTime = new Date();
             Long spend = endTime.getTime()-startTime.getTime();
@@ -330,11 +350,13 @@ public class UserService extends BaseService<UserEntity> implements IUserService
 
             logger.info("主线程继续执行...");
             logger.info("主线程执行完毕!");
+            //刷新threadCount、latch
+            threadCount.set(0);
+            latch = new CountDownLatch(threadCount.get());
         }catch (InterruptedException e){
             logger.error("同步执行出现异常!",e);
         }
 
-//
     }
 
     /**

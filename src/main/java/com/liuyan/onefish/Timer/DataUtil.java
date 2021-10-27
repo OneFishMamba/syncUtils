@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
@@ -55,13 +56,13 @@ public class DataUtil {
         @Override
         public void run(){
             try {
-                 usersDataLock.lock();
-                 syncUserData();
+                usersDataLock.lock();
+                syncUserData();
 
             }catch (Exception e){
-             logger.error("同步用户数据出现异常！",e);
+                logger.error("同步用户数据出现异常！",e);
             }finally {
-             usersDataLock.unlock();
+                usersDataLock.unlock();
             }
         }
     }
@@ -112,7 +113,8 @@ public class DataUtil {
         if (userVersion.equals(userVersion2)){
             return;
         }
-       List<UserEntity> list = userMapper.selectAll(); //select待优化
+        //针对百万级数据量的查询操作存在问题: Exception in thread "Thread-xxx" java.lang.OutOfMemoryError: GC overhead limit exceeded
+        List<UserEntity> list = userMapper.selectAll(); //select待优化
         userService.sync(list);
         //同步完之后对应更新从库用户版本
         sysparams2.setCValue(userVersion);
@@ -138,7 +140,7 @@ public class DataUtil {
         Integer uVersion =  Integer.parseInt(userVersion);
         //测试数据批量插入  --自增主键
         List<UserEntity> addList = new ArrayList<>();
-        for (int i = 0; i < 10000; i++) {
+        for (int i = 0; i < 100000; i++) {
             UserEntity user = new UserEntity();
             user.setUserName(UUID.randomUUID().toString());
             user.setAge(i);
@@ -160,11 +162,21 @@ public class DataUtil {
 //            sysparamsMapper.updateByPrimaryKeySelective(sysparams);
         }
         logger.info("新增数据量的大小:" + addList.size());
-        //批量插入,相比于单条循环插入性能提升20倍
-        userMapper.insertBatch(addList);
+        //批量插入,相比于单条循环插入性能提升10倍以上
+        //批量操作，可能存在单次解析数据包packet过大的问题,通过数据分片或调大max_allowed_packet参数解决;事务问题,若整个事务中有一条数据出现错误,那么整个事务将全部回滚数据
+        int addListCount = (int)Math.ceil((double)addList.size()/800);//向上取整
+        logger.info("addListCount = " + addListCount);
+        List<List<UserEntity>> list = Lists.partition(addList,addListCount);
+        list.forEach((e)->{
+            if(!e.isEmpty()){
+                userMapper.insertBatch(e);
+            }
+        });
+        //调整数据库引擎默认参数max_allowed_packet的大小,set global max_allowed_packet = 64*1024*1024;
+//        userMapper.insertBatch(addList);
 
         //更新用户数据版本
-        uVersion += 10000;
+        uVersion += 100000;
 //        sysparams.setCValue(uVersion.toString());
 //        sysparamsMapper.updateByPrimaryKeySelective(sysparams);
         logger.info("新增操作完成!");
@@ -174,7 +186,7 @@ public class DataUtil {
         Integer id = 0;
         Integer count = userMapper.count();
         List<UserEntity> updList = new ArrayList<>();
-        for (int i = 0; i < 500; i++) {
+        for (int i = 0; i < 2000; i++) {
             UserEntity user = new UserEntity();
             id = random.nextInt(count)+1;
             if(!alIds.contains(id)){
@@ -194,8 +206,16 @@ public class DataUtil {
         }
         logger.info("更新的数据量大小:" + updList.size());
         //批量更新
-        userMapper.updateBatch(updList);
-        uVersion += 500;
+        int updListCount = (int)Math.ceil((double)updList.size()/800);//向上取整
+        logger.info("updListCount = " + updListCount);
+        List<List<UserEntity>> list2 = Lists.partition(updList,updListCount);
+        list2.forEach((e)->{
+            if(!e.isEmpty()){
+                userMapper.updateBatch(e);
+            }
+        });
+//        userMapper.updateBatch(updList);
+        uVersion += 2000;
         logger.info("更新操作完成！");
 
 //        //测试数据批量删除(随机性)  --已删除的过滤掉

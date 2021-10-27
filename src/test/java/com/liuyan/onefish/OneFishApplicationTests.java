@@ -1,5 +1,7 @@
 package com.liuyan.onefish;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -55,19 +57,25 @@ class OneFishApplicationTests {
          *批量添加集合元素函数Collections.addAll(list,elements)
          * 注意Collections与collection的区别
          */
-        List<String> list = new ArrayList<>();
-        Collections.addAll(list,"111","222","333","444","555","666","777","888");
-        System.out.println("list = " + list);
-        System.out.println("list.subList(0,3) = " + list.subList(0,3));
-        System.out.println("list.subList(3,5) = " + list.subList(3,5));
-        System.out.println("list.subList(5,8) = " + list.subList(5,8));
-        //jdk1.8新增iterator中的foreach方法
-        list.forEach((e)->{
-            if(e.equals("333")){
-                System.out.println("33333");
-        } else {
-                System.out.println("*****");
-            }
-        });
+//        List<String> list = new ArrayList<>();
+//        Collections.addAll(list,"111","222","333","444","555","666","777","888");
+//        System.out.println("list = " + list);
+//        System.out.println("list.subList(0,3) = " + list.subList(0,3));
+//        System.out.println("list.subList(3,5) = " + list.subList(3,5));
+//        System.out.println("list.subList(5,8) = " + list.subList(5,8));
+//        //jdk1.8新增iterator中的foreach方法
+//        list.forEach((e)->{
+//            if(e.equals("333")){
+//                System.out.println("33333");
+//        } else {
+//                System.out.println("*****");
+//            }
+//        });
+//        byte [] b = "123ABCdef*#".getBytes();
+//        int i = 0;
+//        while(i != b.length){
+//            System.out.println(b[i]);
+//            i++;
+//        }
     }
 }
